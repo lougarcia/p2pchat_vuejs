@@ -4,24 +4,41 @@
             Chatroom: {{ roomId }}
         </h1>
         <div>
-            <small v-if="isHosting">HOSTING</small>
-            <small v-if="isConnected">
+            <small v-if="userStore.isHosting">HOSTING</small>
+            <small v-if="isConnected" onclick="connectedDialog.showModal()">
                 CONNECTED
-                <sup v-if="isHosting">{{ connections.length }}</sup>
+                <sup>{{ chatroomStore.members.length }}</sup>
             </small>
             <small v-else>NOT CONNECTED</small>
         </div>
     </hgroup>
+    <dialog id="connectedDialog">
+        <article>
+            <header>
+                Members: {{ chatroomStore.members.length }}
+            </header>
+            <div>
+                <ul>
+                    <li v-for="member in chatroomStore.members" :key="member.peerId">
+                        {{ member.username }} <small>{{ member.peerId }}</small>
+                    </li>
+                </ul>
+            </div>
+            <footer>
+                <button class="secondary" onclick="connectedDialog.close()">Close</button>
+            </footer>
+        </article>
+    </dialog>
 </template>
 
 <script setup> // eslint-disable-line
+import { useUserStore } from '@/stores/user';
+import { useChatroomStore } from '@/stores/chatroom';
+
+const chatroomStore = useChatroomStore();
 
 defineProps({
     isConnected: {
-        type: Boolean,
-        required: true
-    },
-    isHosting: {
         type: Boolean,
         required: true
     },
@@ -29,11 +46,9 @@ defineProps({
         type: String,
         required: true
     },
-    connections: {
-        type: Array,
-        default: () => []
-    }
-})
+});
+
+const userStore = useUserStore();
 
 </script>
 
@@ -49,6 +64,7 @@ hgroup {
         font-weight: bold;
         color: green;
         white-space: nowrap;
+        cursor: pointer;
     }
 
     > div {

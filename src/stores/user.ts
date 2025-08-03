@@ -2,19 +2,26 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useUserStore = defineStore('user', () => {
-    const username = ref(sessionStorage.getItem('username') || 'Guest' + Math.floor(Math.random() * 1000))
+    const username = ref('');
+    const isHosting = ref(false);
 
-    const updateUsername = (newUsername: string) => {
+    const setUsername = (newUsername: string) => {
         if (!newUsername || newUsername.trim() === '') {
-            console.warn('Username cannot be empty')
+            console.warn('Username cannot be empty');
             return
         }
         username.value = newUsername.trim()
-        sessionStorage.setItem('username', username.value)
+        sessionStorage.setItem('username', username.value);
+    }
+
+    const setIsHosting = (hosting: boolean) => {
+        isHosting.value = hosting
     }
 
     return {
         username,
-        updateUsername,
+        isHosting,
+        setUsername,
+        setIsHosting
     }
 })

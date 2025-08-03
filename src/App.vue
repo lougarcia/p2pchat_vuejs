@@ -3,8 +3,6 @@
         <ChatHeader
             :roomId="roomId"
             :isConnected="isConnected"
-            :isHosting="isHosting"
-            :connections="connections"
         />
     </header>
     <section>
@@ -13,7 +11,6 @@
     <section>
         <ChatBox
             :isConnected="isConnected"
-            :isHosting="isHosting"
             :messages="messages"
             @send-message="sendMessage"
         />
@@ -21,38 +18,75 @@
 </template>
 
 <script setup> // eslint-disable-line
-import { ref } from 'vue'
-import { Peer } from 'peerjs'
-import ChattingAs from './components/ChattingAs.vue'
-import ChatHeader from './components/ChatHeader.vue'
-import ChatBox from './components/ChatBox.vue'
-import { useUserStore } from '@/stores/user'
+import { ref } from 'vue';
+import { Peer } from 'peerjs';
+import ChattingAs from './components/ChattingAs.vue';
+import ChatHeader from './components/ChatHeader.vue';
+import ChatBox from './components/ChatBox.vue';
+import { useUserStore } from '@/stores/user';
+import { useChatroomStore } from '@/stores/chatroom';
 
-const userStore = useUserStore()
+const userStore = useUserStore();
+const chatroomStore = useChatroomStore();
 
-const peerId = ref(sessionStorage.getItem('peerId') || '')
-const isConnected = ref(false)
-const isHosting = ref(false)
-const messages = ref([])
-const connections = ref([])
+const peerId = ref(sessionStorage.getItem('peerId') || '');
+const isConnected = ref(false);
+const messages = ref([]);
+const connections = ref([]);
 
-let conn = null
+let conn = null;
 
-const params = new URLSearchParams(window.location.search)
-const roomId = params.get('id') || 'default-room'
-const hostPeerId = 'chatroom-host-' + roomId
+const params = new URLSearchParams(window.location.search);
+const roomId = params.get('id') || 'default-room';
+const hostPeerId = 'chatroom-host-' + roomId;
 
 const hostPeer = new Peer(hostPeerId);
 
 hostPeer.on('open', function(id) {
     console.log('Host ID is: ' + id);
-    isHosting.value = true
+    userStore.setIsHosting(true);
 });
 
 hostPeer.on('connection', function(connection) {
     console.log('Host received a connection from:', connection.peer);
-    connections.value.push(connection);
-    console.log('Current connections:', connections.value.length);
+
+    // make sure connection is not already in the list
+    const index = connections.value.findIndex(c => c.peer === connection.peer);
+    if(index === -1) {
+        connections.value.push(connection);
+    } else {
+        connections.value[index] = connection;
+    }
+
+    connection.on('open', function() {
+        console.log('Host connection open with:', connection.peer);
+
+        // send memeers data to everyone
+        for (const c of connections.value) {
+            const data = {
+                type: 'chatroom-info',
+                members: connections.value.map(m => ({
+                    peerId: m.peer,
+                    username: m.metadata.username,
+                    isHosting: m.metadata.isHosting,
+                    date: m.metadata.date
+                }))
+            }
+            console.log('Sending user-info to:', c.peer, data);
+            if (c.open) {
+                c.send(data);
+                console.log('Data sent:', data);
+            }
+        }
+    });
+
+    connection.on('close', function() {
+        console.log('Host connection closed with:', connection.peer);
+    });
+
+    connection.on('error', function(err) {
+        console.error('Host connection error:', err);
+    });
 
     connection.on('data', function(data) {
         console.log('Host received data:', data);
@@ -65,28 +99,16 @@ hostPeer.on('connection', function(connection) {
             }
         }
     });
-
-    connection.on('open', function() {
-        console.log('Host connection open with:', connection.peer);
-    });
-
-    connection.on('close', function() {
-        console.log('Host connection closed with:', connection.peer);
-    });
-
-    connection.on('error', function(err) {
-        console.error('Host connection error:', err);
-    });
 });
 
-const clientPeer = new Peer(peerId.value)
+const clientPeer = new Peer(peerId.value);
 
 clientPeer.on('open', function(id) {
     peerId.value = id;
     sessionStorage.setItem('peerId', id);
     console.log('My Peer ID is: ' + id);
 
-    connectToHost()
+    connectToHost();
 });
 
 clientPeer.on('error', function(err) {
@@ -99,10 +121,16 @@ function connectToHost() {
         return;
     }
 
-    conn = clientPeer.connect(hostPeerId);
+    conn = clientPeer.connect(hostPeerId, {
+        metadata: {
+            username: userStore.username,
+            isHosting: userStore.isHosting,
+            date: Date.now()
+        }
+    });
 
     conn.on('open', function() {
-        console.log('Connection established with host');
+        console.log('Connection established with host', conn);
         isConnected.value = true;
     });
 
@@ -117,11 +145,17 @@ function connectToHost() {
 
     conn.on('data', function(data) {
         console.log('Received data:', data);
-        if (data.type === 'text' || data.type === 'image') {
-            messages.value.push(data);
-        } else if (data.type === 'user-info') {
-            // Handle user info updates if needed
-            console.log('User info:', data);
+        switch (data.type) {
+            case 'chatroom-info':
+                // Update connections with new members
+                chatroomStore.setMembers(data.members);
+                break;
+            case 'text':
+            case 'image':
+                messages.value.push(data);
+                break;
+            default:
+                console.warn('Unknown data type:', data.type);
         }
     });
 }
@@ -143,15 +177,4 @@ function sendMessage(msg) {
         conn.send(data);
     }
 }
-
-// function updateUsername(event) {
-//     const username = event.target.value.trim();
-//     if (!username) return;
-
-//     const userInfo = { type: 'user-info', sender: peerId.value, username };
-//     console.log('Updating username:', userInfo);
-//     if (conn && conn.open) {
-//         conn.send(userInfo);
-//     }
-// }
 </script>

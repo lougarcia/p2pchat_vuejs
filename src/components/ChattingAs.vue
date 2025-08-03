@@ -5,7 +5,7 @@
             type="text"
             id="username"
             :value="userStore.username"
-            @blur="userStore.updateUsername($event.target.value)"
+            @blur="userStore.setUsername($event.target.value)"
             placeholder="Enter your username"
             :disabled="!props.isConnected"
         />
@@ -14,6 +14,7 @@
 
 <script setup> // eslint-disable-line
 import { useUserStore } from '@/stores/user';
+import { onMounted } from 'vue';
 
 const userStore = useUserStore();
 
@@ -22,7 +23,15 @@ const props = defineProps({
         type: Boolean,
         required: true
     },
-})
+});
+
+onMounted(() => {
+    // Initialize username if not set
+    if (!userStore.username) {
+        const username = sessionStorage.getItem('username') || 'Guest' + Math.floor(Math.random() * 1000)
+        userStore.setUsername(username);
+    }
+});
 </script>
 
 <style scoped>

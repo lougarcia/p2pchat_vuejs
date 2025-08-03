@@ -1,5 +1,5 @@
 <template>
-    <div v-if="!isConnected && !isHosting">
+    <div v-if="!isConnected && !userStore.isHosting">
         <p>Connecting to host...</p>
     </div>
     <div v-else>
@@ -55,13 +55,12 @@
 <script setup> // eslint-disable-line
 import { ref } from 'vue';
 import { Icon } from '@iconify/vue';
+import { useUserStore } from '@/stores/user';
+
+const userStore = useUserStore();
 
 defineProps({
     isConnected: {
-        type: Boolean,
-        required: true
-    },
-    isHosting: {
         type: Boolean,
         required: true
     },
@@ -69,7 +68,7 @@ defineProps({
         type: Array,
         default: () => []
     },
-})
+});
 
 const emits = defineEmits(['send-message']);
 
