@@ -160,12 +160,12 @@ function connectToHost() {
     });
 }
 
-function sendMessage(msg) {
+const sendMessage = (msg, type = "text") => {
     // const msg = msg.trim();
     if (!msg) return;
 
     const data = {
-        type: 'text',
+        type,
         sender: peerId.value,
         text: msg ,
         username: userStore.username,

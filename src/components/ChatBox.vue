@@ -8,7 +8,7 @@
                 <div v-for="(msg, index) in messages" :key="index" class="speech-bubble">
                     <strong>{{ msg.username }}: </strong>
                     <span v-if="msg.type === 'text'">{{ msg.text }}</span>
-                    <img v-else-if="msg.type === 'image'" :src="msg.data" class="chat-img" />
+                    <img v-else-if="msg.type === 'image'" :src="msg.text" class="chat-img" style="max-width: 100px;" />
                 </div>
             </template>
             <template v-else>
@@ -42,7 +42,12 @@
                     type="file"
                     accept="image/*"
                     :disabled="!isConnected"
+                    ref="imageInput"
+                    @change="previewImage"
                 />
+            </div>
+            <div v-if="imagePreview" style="margin-top: 1rem; text-align: center;">
+                <img :src="imagePreview" alt="Preview" style="max-width: 100%; max-height: 200px;" />
             </div>
             <footer>
                 <button class="secondary" onclick="uploadDialog.close()">Close</button>
@@ -53,7 +58,7 @@
 </template>
 
 <script setup> // eslint-disable-line
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { Icon } from '@iconify/vue';
 import { useUserStore } from '@/stores/user';
 
@@ -73,25 +78,59 @@ defineProps({
 const emits = defineEmits(['send-message']);
 
 const newMessage = ref('');
+const imageInput = ref(null);
+const imagePreview = ref(null);
 
 const sendMessage = () => {
     if (!newMessage.value) return;
-    // Emit the message to the parent component
+
     emits('send-message', newMessage.value);
-    // Clear the input field after sending
     newMessage.value = '';
 };
 
 const sendLike = () => {
-    // Emit a like message
     emits('send-message', `👍`);
 };
 
-const sendImage = () => {
-    // Emit an image message
-    // const imageData = 'data:image/png;base64,...'; // Placeholder for actual image data
-    // emits('send-message', { type: 'image', data: imageData });
+const previewImage = () => {
+    const file = imageInput.value?.files?.[0];
+    if (!file) {
+        imagePreview.value = null;
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        imagePreview.value = reader.result;
+    };
+    reader.readAsDataURL(file);
 };
+
+const sendImage = () => {
+    const file = imageInput.value?.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        emits('send-message', reader.result, 'image');
+
+        // Reset everything
+        imageInput.value.value = '';
+        imagePreview.value = null;
+
+        const dialog = document.getElementById('uploadDialog');
+        dialog?.close();
+    };
+    reader.readAsDataURL(file);
+};
+
+onMounted(() => {
+    const dialog = document.getElementById('uploadDialog');
+    dialog?.addEventListener('close', () => {
+        if (imageInput.value) imageInput.value.value = '';
+        imagePreview.value = null;
+    });
+});
 </script>
 
 <style scoped>
@@ -115,6 +154,18 @@ fieldset[role=group] {
 
 .speech-bubble {
     margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid #cccccc50;
+
+    &:nth-child(odd) {
+        background-color: #f0f0f0;
+    }
+
+    > strong {
+        display: block;
+        font-weight: bold;
+        font-size: 0.75rem;
+    }
 }
 
 fieldset:last-of-type {
