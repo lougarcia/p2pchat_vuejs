@@ -1,5 +1,6 @@
 <template>
     <header>
+        <ToastControl />
         <ChatHeader />
     </header>
     <main>
@@ -21,12 +22,15 @@ import { Peer } from 'peerjs';
 import ChattingAs from './components/ChattingAs.vue';
 import ChatHeader from './components/ChatHeader.vue';
 import ChatBox from './components/ChatBox.vue';
-import { useUserStore } from '@/stores/user';
-import { useChatroomStore } from '@/stores/chatroom';
 import ChatControl from './components/ChatControl.vue';
 import ChatMembers from './components/ChatMembers.vue';
 import FooterPullTab from './components/FooterPullTab.vue';
+import ToastControl from './components/ToastControl.vue';
+import { useToast } from './composables/useToast';
+import { useUserStore } from '@/stores/user';
+import { useChatroomStore } from '@/stores/chatroom';
 
+const { addToast } = useToast()
 const userStore = useUserStore();
 const chatroomStore = useChatroomStore();
 
@@ -61,7 +65,7 @@ hostPeer.on('connection', function(connection) {
         // send members data to everyone
         for (const c of connections.value) {
             const data = {
-                type: 'chatroom-info',
+                type: 'chatroom-members',
                 members: connections.value.map(m => ({
                     peerId: m.peer,
                     username: m.metadata.username,
@@ -69,7 +73,7 @@ hostPeer.on('connection', function(connection) {
                     date: m.metadata.date
                 }))
             }
-            console.log('Sending chatroom-info to:', c.peer, data);
+            console.log('Sending chatroom-members to:', c.peer, data);
             if (c.open) {
                 c.send(data);
                 console.log('Data sent:', data);
@@ -129,6 +133,7 @@ function connectToHost() {
     conn.on('open', function() {
         console.log('Connection established with host', conn);
         userStore.setIsConnected(true);
+        if(!userStore.isHosting) addToast('Connection established with host');
     });
 
     conn.on('error', function(err) {
@@ -138,16 +143,21 @@ function connectToHost() {
     conn.on('close', function() {
         console.log('Connection closed');
         userStore.setIsConnected(false);
+        addToast('You were disconnected!', 'error');
     });
 
     conn.on('data', function(data) {
         console.log('Received data:', data);
         switch (data.type) {
-            case 'chatroom-info':
+            case 'chatroom-members':
                 // Update connections with new members
                 chatroomStore.setMembers(data.members);
                 break;
             case 'user-info':
+                const member = chatroomStore.members.find(m => m.peerId == data.peerId)
+                if(data.peerId != peerId.value) {
+                    addToast(`${member.username} has changed username to ${data.text}`);
+                }
                 chatroomStore.setMember(data.peerId, {username: data.text})
                 break;
             case 'text':

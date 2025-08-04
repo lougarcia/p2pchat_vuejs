@@ -29,7 +29,7 @@ export async function createHost(hostId: string): Promise<{
                     // send members data to everyone
                     for (const c of connections) {
                         const data = {
-                            type: 'chatroom-info',
+                            type: 'chatroom-members',
                             members: connections.map(m => ({
                                 peerId: m.peer,
                                 username: m.metadata.username,
@@ -37,7 +37,7 @@ export async function createHost(hostId: string): Promise<{
                                 date: m.metadata.date
                             }))
                         }
-                        console.log('Sending chatroom-info to:', c.peer, data);
+                        console.log('Sending chatroom-members to:', c.peer, data);
                         if (c.open) {
                             c.send(data);
                             console.log('Data sent:', data);
