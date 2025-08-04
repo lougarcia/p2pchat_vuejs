@@ -1,34 +1,17 @@
 <template>
     <hgroup>
         <h1>
-            Chatroom: {{ roomId }}
+            {{ chatroomStore.roomId }}
         </h1>
         <div>
             <small v-if="userStore.isHosting">HOSTING</small>
-            <small v-if="isConnected" onclick="connectedDialog.showModal()">
+            <small v-if="userStore.isConnected">
                 CONNECTED
                 <sup>{{ chatroomStore.members.length }}</sup>
             </small>
             <small v-else>NOT CONNECTED</small>
         </div>
     </hgroup>
-    <dialog id="connectedDialog">
-        <article>
-            <header>
-                Members: {{ chatroomStore.members.length }}
-            </header>
-            <div>
-                <ul>
-                    <li v-for="member in chatroomStore.members" :key="member.peerId">
-                        {{ member.username }} <small>{{ member.peerId }}</small>
-                    </li>
-                </ul>
-            </div>
-            <footer>
-                <button class="secondary" onclick="connectedDialog.close()">Close</button>
-            </footer>
-        </article>
-    </dialog>
 </template>
 
 <script setup> // eslint-disable-line
@@ -36,18 +19,6 @@ import { useUserStore } from '@/stores/user';
 import { useChatroomStore } from '@/stores/chatroom';
 
 const chatroomStore = useChatroomStore();
-
-defineProps({
-    isConnected: {
-        type: Boolean,
-        required: true
-    },
-    roomId: {
-        type: String,
-        required: true
-    },
-});
-
 const userStore = useUserStore();
 
 </script>
@@ -64,7 +35,6 @@ hgroup {
         font-weight: bold;
         color: green;
         white-space: nowrap;
-        cursor: pointer;
     }
 
     > div {

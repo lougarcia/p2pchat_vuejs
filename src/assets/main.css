@@ -1,0 +1,56 @@
+:root {
+    --header-height: 80px;
+    --chatcontrol-height: 200px;
+    --chatbox-height: calc(100dvh - var(--header-height) - var(--chatcontrol-height));
+    --footer-width: 30ch;
+}
+
+body > .container {
+    display: grid;
+    min-height: 100dvh;
+    grid-template-areas:
+        "footer header"
+        "footer main"
+    ;
+    column-gap: 2rem;
+
+    @media screen and (width < 1024px) {
+        grid-template-areas:
+            "header"
+            "main"
+        ;
+    }
+}
+
+.container > header {
+    grid-area: header;
+    height: var(--header-height);
+}
+
+.container > main {
+    grid-area: main;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    height: calc(100dvh - var(--header-height));
+}
+
+.container > footer {
+    grid-area: footer;
+    min-width: var(--footer-width);
+
+    padding: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
+    border-radius: var(--pico-border-radius);
+    background: var(--pico-card-background-color);
+    box-shadow: var(--pico-card-box-shadow);
+
+    @media screen and (width < 1024px) {
+        display: block;
+        position: fixed;
+        left: calc(-1 * var(--footer-width));
+        height: 100dvh;
+
+        &:focus-within {
+            left: 0;
+        }
+    }
+}

@@ -1,20 +1,18 @@
 <template>
     <header>
-        <ChatHeader
-            :roomId="roomId"
-            :isConnected="isConnected"
-        />
+        <ChatHeader />
     </header>
-    <section>
-        <ChattingAs :isConnected="isConnected" />
-    </section>
-    <section>
-        <ChatBox
-            :isConnected="isConnected"
-            :messages="messages"
-            @send-message="sendMessage"
-        />
-    </section>
+    <main>
+        <ChatBox />
+        <ChatControl @send-message="sendMessage" />
+    </main>
+    <footer>
+        <FooterPullTab />
+        <ChattingAs @change-user-name="changeUsername" />
+        <hr>
+        <ChatMembers />
+        <hr>
+    </footer>
 </template>
 
 <script setup> // eslint-disable-line
@@ -25,20 +23,19 @@ import ChatHeader from './components/ChatHeader.vue';
 import ChatBox from './components/ChatBox.vue';
 import { useUserStore } from '@/stores/user';
 import { useChatroomStore } from '@/stores/chatroom';
+import ChatControl from './components/ChatControl.vue';
+import ChatMembers from './components/ChatMembers.vue';
+import FooterPullTab from './components/FooterPullTab.vue';
 
 const userStore = useUserStore();
 const chatroomStore = useChatroomStore();
 
 const peerId = ref(sessionStorage.getItem('peerId') || '');
-const isConnected = ref(false);
-const messages = ref([]);
 const connections = ref([]);
 
 let conn = null;
 
-const params = new URLSearchParams(window.location.search);
-const roomId = params.get('id') || 'default-room';
-const hostPeerId = 'chatroom-host-' + roomId;
+const hostPeerId = 'chatroom-host-' + userStore.roomId;
 
 const hostPeer = new Peer(hostPeerId);
 
@@ -61,7 +58,7 @@ hostPeer.on('connection', function(connection) {
     connection.on('open', function() {
         console.log('Host connection open with:', connection.peer);
 
-        // send memeers data to everyone
+        // send members data to everyone
         for (const c of connections.value) {
             const data = {
                 type: 'chatroom-info',
@@ -72,7 +69,7 @@ hostPeer.on('connection', function(connection) {
                     date: m.metadata.date
                 }))
             }
-            console.log('Sending user-info to:', c.peer, data);
+            console.log('Sending chatroom-info to:', c.peer, data);
             if (c.open) {
                 c.send(data);
                 console.log('Data sent:', data);
@@ -131,7 +128,7 @@ function connectToHost() {
 
     conn.on('open', function() {
         console.log('Connection established with host', conn);
-        isConnected.value = true;
+        userStore.setIsConnected(true);
     });
 
     conn.on('error', function(err) {
@@ -140,7 +137,7 @@ function connectToHost() {
 
     conn.on('close', function() {
         console.log('Connection closed');
-        isConnected.value = false;
+        userStore.setIsConnected(false);
     });
 
     conn.on('data', function(data) {
@@ -150,9 +147,12 @@ function connectToHost() {
                 // Update connections with new members
                 chatroomStore.setMembers(data.members);
                 break;
+            case 'user-info':
+                chatroomStore.setMember(data.peerId, {username: data.text})
+                break;
             case 'text':
             case 'image':
-                messages.value.push(data);
+                chatroomStore.addMessage(data);
                 break;
             default:
                 console.warn('Unknown data type:', data.type);
@@ -166,7 +166,7 @@ const sendMessage = (msg, type = "text") => {
 
     const data = {
         type,
-        sender: peerId.value,
+        peerId: peerId.value,
         text: msg ,
         username: userStore.username,
         date: Date.now()
@@ -176,5 +176,9 @@ const sendMessage = (msg, type = "text") => {
         console.log('Sending data:', data);
         conn.send(data);
     }
+}
+
+const changeUsername = () => {
+    sendMessage(userStore.username, "user-info")
 }
 </script>

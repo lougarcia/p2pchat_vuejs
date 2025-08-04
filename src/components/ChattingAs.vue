@@ -1,13 +1,13 @@
 <template>
-    <fieldset role="group">
+    <fieldset>
         <label for="username">Chatting as:</label>
         <input
             type="text"
             id="username"
             :value="userStore.username"
-            @blur="userStore.setUsername($event.target.value)"
+            @blur="setUsername"
             placeholder="Enter your username"
-            :disabled="!props.isConnected"
+            :disabled="!userStore.isConnected"
         />
     </fieldset>
 </template>
@@ -18,12 +18,12 @@ import { onMounted } from 'vue';
 
 const userStore = useUserStore();
 
-const props = defineProps({
-    isConnected: {
-        type: Boolean,
-        required: true
-    },
-});
+const emits = defineEmits(['change-user-name']);
+
+const setUsername = (e) => {
+    userStore.setUsername(e.target.value);
+    emits('change-user-name', e.target.value);
+}
 
 onMounted(() => {
     // Initialize username if not set
