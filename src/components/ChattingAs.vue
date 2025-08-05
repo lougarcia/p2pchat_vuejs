@@ -7,22 +7,34 @@
             :value="userStore.username"
             @blur="setUsername"
             placeholder="Enter your username"
-            :disabled="!userStore.isConnected"
+            :disabled="!clientPeerStore.clientIsConnected"
         />
     </fieldset>
 </template>
 
-<script setup> // eslint-disable-line
+<script setup lang="ts">
 import { useUserStore } from '@/stores/user';
 import { onMounted } from 'vue';
+import { sendMessage } from '@/lib/sendMessage';
+import { useClientPeerStore } from '@/stores/clientPeer';
+import type { DataConnection } from 'peerjs';
 
 const userStore = useUserStore();
+const clientPeerStore = useClientPeerStore();
 
-const emits = defineEmits(['change-user-name']);
+const setUsername = (e:Event) => {
+    const target = e.target as HTMLInputElement
+    if(target.value == userStore.username) return
 
-const setUsername = (e) => {
-    userStore.setUsername(e.target.value);
-    emits('change-user-name', e.target.value);
+    userStore.setUsername(target?.value);
+
+    sendMessage(
+        clientPeerStore.clientConn as DataConnection,
+        target?.value,
+        clientPeerStore.clientPeerId,
+        userStore.username,
+        'user-info'
+    )
 }
 
 onMounted(() => {

@@ -1,0 +1,15 @@
+<template>
+    <div class="card">
+        <slot />
+    </div>
+</template>
+
+<style scoped>
+.card {
+    margin-bottom: var(--pico-block-spacing-vertical);
+    padding: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
+    border-radius: var(--pico-border-radius);
+    background: var(--pico-card-background-color);
+    box-shadow: var(--pico-card-box-shadow);
+}
+</style>

@@ -2,11 +2,11 @@
     <fieldset role="group">
         <input
             v-model="newMessage"
-            @keyup.enter="sendMessage"
+            @keyup.enter="handleSendMessage"
             placeholder="Type a message..."
-            :disabled="!userStore.isConnected"
+            :disabled="!clientPeerStore.clientIsConnected"
         />
-        <button class="secondary" @click="sendMessage"><Icon icon="material-symbols:send-rounded" /></button>
+        <button class="secondary" @click="handleSendMessage"><Icon icon="material-symbols:send-rounded" /></button>
     </fieldset>
     <fieldset dir="rtl">
         <button @click="sendLike"><Icon icon="material-symbols:thumb-up-rounded" /></button>
@@ -16,7 +16,7 @@
     </fieldset>
 
     <dialog id="uploadDialog2" class="upload-dialog">
-        <article>
+        <CardWrapper>
             <header>
                 Share Image
             </header>
@@ -24,7 +24,7 @@
                 <input
                     type="file"
                     accept="image/*"
-                    :disabled="!userStore.isConnected"
+                    :disabled="!clientPeerStore.clientIsConnected"
                     ref="imageInput"
                     @change="previewImage"
                 />
@@ -34,34 +34,48 @@
             </div>
             <footer>
                 <button class="secondary" onclick="uploadDialog2.close()">Close</button>
-                <button @click="sendImage" :disabled="!userStore.isConnected">Share Image</button>
+                <button @click="sendImage" :disabled="!clientPeerStore.clientIsConnected">Share Image</button>
             </footer>
-        </article>
+        </CardWrapper>
     </dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import CardWrapper from './CardWrapper.vue';
 import { Icon } from '@iconify/vue';
 import { useUserStore } from '@/stores/user';
-
-const emits = defineEmits(['send-message']);
+import { sendMessage } from '@/lib/sendMessage';
+import { useClientPeerStore } from '@/stores/clientPeer';
+import type { DataConnection } from 'peerjs';
 
 const userStore = useUserStore();
+const clientPeerStore = useClientPeerStore();
 
 const newMessage = ref('');
 const imageInput = ref<HTMLInputElement | null>(null);
 const imagePreview = ref<string | null>(null);
 
-const sendMessage = () => {
+const handleSendMessage = () => {
     if (!newMessage.value) return;
 
-    emits('send-message', newMessage.value);
+    sendMessage(
+        clientPeerStore.clientConn as DataConnection,
+        newMessage.value,
+        clientPeerStore.clientPeerId,
+        userStore.username
+    )
+
     newMessage.value = '';
 };
 
 const sendLike = () => {
-    emits('send-message', `👍`);
+    sendMessage(
+        clientPeerStore.clientConn as DataConnection,
+        `👍`,
+        clientPeerStore.clientPeerId,
+        userStore.username
+    )
 };
 
 const sendImage = () => {
@@ -71,7 +85,14 @@ const sendImage = () => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => {
-        emits('send-message', reader.result, 'image');
+
+        sendMessage(
+            clientPeerStore.clientConn as DataConnection,
+            reader.result as ArrayBuffer,
+            clientPeerStore.clientPeerId,
+            userStore.username,
+            'image'
+        )
 
         // Reset everything
         imageInput.value = null;

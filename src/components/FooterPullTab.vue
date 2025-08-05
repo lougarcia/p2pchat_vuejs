@@ -1,6 +1,6 @@
 <template>
     <div>
-        <button>&triangleright;</button>
+        <button>&Congruent;</button>
     </div>
 </template>
 

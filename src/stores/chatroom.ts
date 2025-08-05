@@ -9,11 +9,12 @@ export type Member = {
 };
 
 export type Message = {
-    type: 'text' | 'image';
+    type: 'text' | 'image' | 'chatroom-members' | 'user-info';
     peerId: string
-    text: string;
+    text: string | ArrayBuffer ;
     username: string;
     date: number;
+    members?: [];
 };
 
 export const useChatroomStore = defineStore('chatroom', () => {

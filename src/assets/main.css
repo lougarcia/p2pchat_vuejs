@@ -12,6 +12,7 @@ body > .container {
         "footer header"
         "footer main"
     ;
+    grid-template-columns: auto 1fr;
     column-gap: 2rem;
 
     @media screen and (width < 1024px) {
@@ -19,6 +20,7 @@ body > .container {
             "header"
             "main"
         ;
+        grid-template-columns: 1fr;
     }
 }
 

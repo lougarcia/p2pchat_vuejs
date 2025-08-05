@@ -1,11 +1,11 @@
 <template>
     <hgroup>
         <h1>
-            {{ chatroomStore.roomId }}
+            <Icon icon="material-symbols:chat-rounded" /> {{ chatroomStore.roomId }}
         </h1>
         <div>
-            <small v-if="userStore.isHosting">HOSTING</small>
-            <small v-if="userStore.isConnected">
+            <small v-if="hostPeerStore.hostPeerId">HOSTING</small>
+            <small v-if="clientPeerStore.clientIsConnected">
                 CONNECTED
                 <sup>{{ chatroomStore.members.length }}</sup>
             </small>
@@ -15,11 +15,14 @@
 </template>
 
 <script setup> // eslint-disable-line
-import { useUserStore } from '@/stores/user';
 import { useChatroomStore } from '@/stores/chatroom';
+import { useHostPeerStore } from '@/stores/hostPeer';
+import { useClientPeerStore } from '@/stores/clientPeer';
+import { Icon } from '@iconify/vue';
 
 const chatroomStore = useChatroomStore();
-const userStore = useUserStore();
+const hostPeerStore = useHostPeerStore();
+const clientPeerStore = useClientPeerStore();
 
 </script>
 

@@ -8,10 +8,10 @@ export type SendMessageProps = {
 
 export function sendMessage(
     conn:DataConnection,
-    text:string,
+    text:string | ArrayBuffer ,
     peerId:string,
     username:string,
-    type:"text" | "image" = 'text'
+    type:Message['type'] = 'text'
 ) {
     if (!text) return;
 
